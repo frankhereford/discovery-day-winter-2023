@@ -30,6 +30,12 @@ const argv = yargs(hideBin(process.argv))
     describe: "Fetch and add comments from OpenAI",
     type: "boolean",
     default: false,
+  })
+  .option("header", {
+    alias: "h",
+    describe: "Fetch and add a summary header from OpenAI",
+    type: "boolean",
+    default: false,
   }).argv;
 
 const filePath = argv.file;
@@ -186,6 +192,28 @@ function splitTextIntoLines(text, maxLineLength = 80) {
   return lines;
 }
 
+async function queryOpenAISummary(code) {
+  const prompt = `Please provide a 200-word summary, using bulleted lists where appropriate, of the following JavaScript file content:
+
+${code}`;
+
+  try {
+    const params = {
+      messages: [{ role: "user", content: prompt }],
+      model: "gpt-4",
+    };
+
+    const chatCompletion = await openai.chat.completions.create(params);
+    if (chatCompletion?.choices[0]?.message?.content) {
+      return chatCompletion.choices[0].message.content;
+    } else {
+      return "Error: Could not retrieve summary from OpenAI";
+    }
+  } catch (err) {
+    console.error(`Error querying OpenAI: ${err.message}`);
+    return "Error querying OpenAI";
+  }
+}
 
 // Modify the processNodes function to check for the openai-comments flag
 async function processNodes() {
@@ -201,6 +229,14 @@ async function processNodes() {
       insertComment(node, split_comment);
     }
   }
+
+    if (argv.header) {
+      const summary = await queryOpenAISummary(fileContent);
+      fileContent = `/*\n${summary}\n*/\n\n${fileContent}`;
+      fs.writeFileSync(filePath, fileContent); // Write the file with the prepended summary
+      console.log("Summary header inserted and file updated.");
+    }
+
 
   // Generate the modified code
   if (argv["openai-comments"]) {
