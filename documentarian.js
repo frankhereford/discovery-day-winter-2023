@@ -99,18 +99,22 @@ function printRedDashLine() {
 }
 
 async function queryOpenAI(snippet, code) {
-  prompt = `I am going to show you a file of javascript. The file will begin after this paragraph,
+  prompt =
+    `I am going to show you a file of javascript. The file will begin after this paragraph,
 and it will continue until I tell you the whole file is done. After a blank line,
 I will include a portion of the same code as before, and I want you to describe what the 
 portion of code does, as if you were writing an inline comment for the file. Be as brief as
 possible with your comment. One or two sentences maximum. Do not include the '//'. The whole file follows:
 
-  ` + code + `
+  ` +
+    code +
+    `
 
 The whole file is above, and the portion of the code repeated below is what I want you
 to describe. This portion of the code follows:
 
-  ` + snippet;
+  ` +
+    snippet;
 
   try {
     const params = {
@@ -164,7 +168,7 @@ function insertComment(node, comment) {
   if (comment) {
     node.leadingComments = node.leadingComments || [];
     node.leadingComments.push({
-      type: 'CommentBlock',
+      type: "CommentBlock",
       value: comment,
     });
   }
@@ -224,11 +228,10 @@ async function processNodes() {
     if (argv["openai-comments"]) {
       printRedDashLine();
       let comment = await queryOpenAI(codeSnippet, fileContent);
-      let split_comment = splitTextIntoLines(comment, 80).join("\n")
+      let split_comment = splitTextIntoLines(comment, 80).join("\n");
       console.log(split_comment);
       insertComment(node, split_comment);
     }
-
   }
 
   // Generate the modified code
@@ -243,10 +246,7 @@ async function processNodes() {
     fileContent = `/*\n${summary}\n*/\n\n${fileContent}`;
     fs.writeFileSync(filePath, fileContent); // Write the file with the prepended summary
     console.log("Summary header inserted and file updated.");
-    }
-
-
-
+  }
 }
 
 // Run the async function
