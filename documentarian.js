@@ -228,15 +228,8 @@ async function processNodes() {
       console.log(split_comment);
       insertComment(node, split_comment);
     }
+
   }
-
-    if (argv.header) {
-      const summary = await queryOpenAISummary(fileContent);
-      fileContent = `/*\n${summary}\n*/\n\n${fileContent}`;
-      fs.writeFileSync(filePath, fileContent); // Write the file with the prepended summary
-      console.log("Summary header inserted and file updated.");
-    }
-
 
   // Generate the modified code
   if (argv["openai-comments"]) {
@@ -244,6 +237,16 @@ async function processNodes() {
     fs.writeFileSync(filePath, output.code); // Write the modified code back to the file
     console.log("Comments inserted and file updated.");
   }
+
+  if (argv["header"]) {
+    const summary = await queryOpenAISummary(fileContent);
+    fileContent = `/*\n${summary}\n*/\n\n${fileContent}`;
+    fs.writeFileSync(filePath, fileContent); // Write the file with the prepended summary
+    console.log("Summary header inserted and file updated.");
+    }
+
+
+
 }
 
 // Run the async function
