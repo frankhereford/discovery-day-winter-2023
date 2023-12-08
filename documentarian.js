@@ -3,6 +3,7 @@
 require("dotenv").config()
 
 const fs = require("fs")
+const prettier = require('prettier');
 const yargs = require("yargs/yargs")
 const { hideBin } = require("yargs/helpers")
 const { parse } = require("@babel/parser")
@@ -36,7 +37,13 @@ const argv = yargs(hideBin(process.argv))
         describe: "Fetch and add a summary header from OpenAI",
         type: "boolean",
         default: false,
-    }).argv
+    })
+    .option("prettier", {
+        alias: "p",
+        describe: "Run prettier on the output",
+        type: "boolean",
+        default: false,
+    }.argv
 
 const filePath = argv.file
 
@@ -270,5 +277,33 @@ async function processNodes() {
     }
 }
 
+function formatFile(filePath) {
+  try {
+    // Read the file content
+    const fileContent = fs.readFileSync(filePath, "utf8");
+
+    // Read Prettier configuration
+    const prettierConfig = prettier.resolveConfig.sync(filePath);
+
+    // Format the file content
+    const formatted = prettier.format(fileContent, {
+      ...prettierConfig,
+      filepath: filePath,
+    });
+
+    // Write the formatted content back to the file
+    fs.writeFileSync(filePath, formatted);
+
+    console.log(`File formatted: ${filePath}`);
+  } catch (error) {
+    console.error(`Error formatting file: ${error.message}`);
+  }
+}
+
+
 // Run the async function
 processNodes().then(() => console.log("Analysis complete."))
+
+if (argv["prettier"]) {
+  formatFile(filePath)
+}
