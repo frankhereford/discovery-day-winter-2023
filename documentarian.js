@@ -7,11 +7,18 @@ const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const { parse } = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
-const openai = require("openai");
+//import OpenAI from "openai";
+const OpenAI = require("openai");
+
+
+
+
+const openai = new OpenAI({});
+//const openai = new OpenAI({ });
 
 // Optional: const jscodeshift = require('jscodeshift');
 
-openai.apiKey = process.env.OPENAI_API_KEY;
+//openai.apiKey = process.env.OPENAI_API_KEY;
 
 
 // Parse the command line arguments
@@ -78,12 +85,39 @@ function printRedDashLine() {
   console.log(red + line + reset);
 }
 
-const handleNode = (node) => {
+async function queryOpenAI(prompt, code) {
+    const params = {
+    messages: [{ role: "user", content: prompt + "\n" + code }],
+    //model: "gpt-4",
+    model: 'gpt-3.5-turbo',
+    };
+
+  
+    const chatCompletion = await openai.chat.completions.create(params);
+    if (chatCompletion?.choices[0]?.message?.content) {
+    const topicObj = JSON.parse(chatCompletion.choices[0].message.content)
+    return {
+        label: topicObj.label,
+        topic: topicObj.topic,
+    };
+    } else {
+    return {
+        topic: 'Error: Could not retrieve prompt from OpenAI',
+    };
+    }
+
+
+}
+
+
+const handleNode = async (node) => {
   printRedDashLine();
   //console.log(node);
   const { start, end } = node;
   const codeSnippet = fileContent.slice(start, end);
   console.log(codeSnippet, "\n");
+  let response = await queryOpenAI("What does this code do?", codeSnippet);
+  console.log(response)
 };
 
 // Traverse the AST
