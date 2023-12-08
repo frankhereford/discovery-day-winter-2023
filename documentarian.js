@@ -7,6 +7,7 @@ const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const { parse } = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
+const { default: generate } = require("@babel/generator");
 const OpenAI = require("openai");
 
 const openai = new OpenAI({});
@@ -70,7 +71,8 @@ to describe. This portion of the code follows:
   try {
     const params = {
       messages: [{ role: "user", content: prompt + "\n" + code }],
-      model: "gpt-4-1106-preview",
+      //model: "gpt-4-1106-preview",
+      model: "gpt-3.5-turbo-1106",
     };
 
     const chatCompletion = await openai.chat.completions.create(params);
@@ -104,16 +106,33 @@ traverse(ast, {
   },
 });
 
+// Function to insert comments into AST
+function insertComment(node, comment) {
+  if (comment) {
+    node.leadingComments = node.leadingComments || [];
+    node.leadingComments.push({
+      type: 'CommentBlock',
+      value: comment.trim(),
+    });
+  }
+}
+
+
 // Process nodes asynchronously
 async function processNodes() {
   for (const node of nodesToProcess) {
-    printRedDashLine();
     const { start, end } = node;
     const codeSnippet = fileContent.slice(start, end);
-    console.log(codeSnippet, "\n");
-    let response = await queryOpenAI(codeSnippet, fileContent);
-    console.log(response);
+    printRedDashLine()
+    let comment = await queryOpenAI(codeSnippet, fileContent);
+    console.log(comment);
+    insertComment(node, comment);
   }
+
+  // Generate the modified code
+  const output = generate(ast, {}, fileContent);
+  fs.writeFileSync(filePath, output.code); // Write the modified code back to the file
+  console.log("Comments inserted and file updated.");
 }
 
 // Run the async function
