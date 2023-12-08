@@ -70,12 +70,20 @@ try {
   process.exit(1);
 }
 
+function printRedDashLine() {
+  const line = '-'.repeat(80);
+  const red = '\x1b[31m'; // ANSI code for red
+  const reset = '\x1b[0m'; // ANSI code to reset color
+
+  console.log(red + line + reset);
+}
+
 const handleNode = (node) => {
+  printRedDashLine();
   //console.log(node);
   const { start, end } = node;
   const codeSnippet = fileContent.slice(start, end);
   console.log(codeSnippet, "\n");
-
 };
 
 // Traverse the AST
