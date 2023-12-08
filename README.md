@@ -1,4 +1,4 @@
-# README for JavaScript File Enhancer Script
+# 📚 The Documentarian
 
 ## Overview
 This Node.js script enhances a JavaScript file by optionally removing comments, adding comments from OpenAI, and formatting the code with Prettier. It uses several Node.js modules, including `fs`, `prettier`, `yargs`, `@babel/parser`, `@babel/traverse`, `@babel/generator`, and `OpenAI`.
