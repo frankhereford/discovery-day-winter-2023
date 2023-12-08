@@ -41,8 +41,9 @@ try {
 }
 
 // Parse the file content to AST
+let ast;
 try {
-  const ast = parse(fileContent, {
+  ast = parse(fileContent, {
     sourceType: "module",
     plugins: ["jsx"], // If you are using JSX
     //errorRecovery: true,
@@ -69,7 +70,14 @@ try {
   process.exit(1);
 }
 
-/*
+const handleNode = (node) => {
+  //console.log(node);
+  const { start, end } = node;
+  const codeSnippet = fileContent.slice(start, end);
+  console.log(codeSnippet, "\n");
+
+};
+
 // Traverse the AST
 traverse(ast, {
   enter(path) {
@@ -78,12 +86,3 @@ traverse(ast, {
     }
   }
 });
-*/
-
-/*
-// Define handleNode function to extract code snippets
-const handleNode = (node) => {
-  // Extract code snippet logic goes here
-  // For example, get the code of the entire function or class
-};
-*/
