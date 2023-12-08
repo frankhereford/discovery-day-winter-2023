@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "@babel/parser": "^7.23.5",
-    "@babel/traverse": "^7.23.5"
+    "@babel/traverse": "^7.23.5",
+    "jscodeshift": "^0.15.1",
+    "openai": "^4.20.1"
   }
 }
