@@ -39,23 +39,23 @@ if (!fs.existsSync(filePath)) {
   process.exit(1);
 }
 
-let cleanup_fileContent;
+let fileContent;
 try {
-  cleanup_fileContent = fs.readFileSync(filePath, "utf-8");
+  fileContent = fs.readFileSync(filePath, "utf-8");
 } catch (err) {
   console.error(`An error occurred while reading the file: ${err.message}`);
   process.exit(1);
 }
 
-let cleanup_ast = parse(cleanup_fileContent, {
+let ast = parse(fileContent, {
   sourceType: "module",
   plugins: ["jsx"],
 });
 
 // Function to remove all comments from AST
-function removeComments(cleanup_ast) {
-  console.log("removing comments");
-  traverse(cleanup_ast, {
+function removeComments(ast) {
+  //console.log("removing comments");
+  traverse(ast, {
     enter(path) {
       if (path.node.leadingComments) {
         //console.log("Leading comments before removal:", path.node.leadingComments);
@@ -71,14 +71,18 @@ function removeComments(cleanup_ast) {
       }
     },
   });
-  return cleanup_ast;
+  return ast;
 }
 
 // Remove all comments if the -c argument is provided
 if (argv["clear-comments"]) {
-  cleanup_ast = removeComments(cleanup_ast);
-  cleanup_fileContent = generate(cleanup_ast, {}, cleanup_fileContent).code;
-  fs.writeFileSync(filePath, cleanup_fileContent); // Write uncommented code back to the file
+  ast = removeComments(ast);
+  fileContent = generate(ast, {}, fileContent).code;
+  fs.writeFileSync(filePath, fileContent); // Write uncommented code back to the file
+  ast = parse(fileContent, {
+    sourceType: "module",
+    plugins: ["jsx"],
+  });
 }
 
 function printRedDashLine() {
@@ -89,12 +93,11 @@ function printRedDashLine() {
 }
 
 async function queryOpenAI(snippet, code) {
-  prompt = `Take a deep breath and think through everything I ask logically. Check your work.
-I am going to show you a file of javascript. The file will begin after this paragraph,
+  prompt = `I am going to show you a file of javascript. The file will begin after this paragraph,
 and it will continue until I tell you the whole file is done. After a blank line,
 I will include a portion of the same code as before, and I want you to describe what the 
-portion of code does, as if you were writing an inline comment for the file. Be brief
-when you are able, but also be detailed. The whole file follows:
+portion of code does, as if you were writing an inline comment for the file. Be as brief as
+possible with your comment. One or two sentences maximum. Do not include the '//'. The whole file follows:
 
   ` + code + `
 
@@ -107,7 +110,8 @@ to describe. This portion of the code follows:
     const params = {
       messages: [{ role: "user", content: prompt + "\n" + code }],
       //model: "gpt-4-1106-preview",
-      model: "gpt-3.5-turbo-1106",
+      model: "gpt-4",
+      //model: "gpt-3.5-turbo-1106",
     };
 
     const chatCompletion = await openai.chat.completions.create(params);
@@ -126,7 +130,6 @@ to describe. This portion of the code follows:
   }
 }
 
-let fileContent;
 try {
   fileContent = fs.readFileSync(filePath, "utf-8");
 } catch (err) {
@@ -134,17 +137,13 @@ try {
   process.exit(1);
 }
 
-let ast = parse(fileContent, {
-  sourceType: "module",
-  plugins: ["jsx"],
-});
-
 const nodesToProcess = [];
 
 // Collect nodes first
 traverse(ast, {
   enter(path) {
     if (
+      // things we want commented
       path.isFunctionDeclaration() ||
       path.isArrowFunctionExpression() ||
       path.isClassDeclaration()
@@ -160,9 +159,31 @@ function insertComment(node, comment) {
     node.leadingComments = node.leadingComments || [];
     node.leadingComments.push({
       type: 'CommentBlock',
-      value: comment.trim(),
+      value: comment,
     });
   }
+}
+
+function splitTextIntoLines(text, maxLineLength = 80) {
+  const words = text.split(" ");
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    if ((currentLine + word).length > maxLineLength) {
+      lines.push(currentLine.trim());
+      currentLine = word;
+    } else {
+      currentLine += ` ${word}`;
+    }
+  });
+
+  // Add the last line if it's not empty
+  if (currentLine.trim()) {
+    lines.push(currentLine.trim());
+  }
+
+  return lines;
 }
 
 
@@ -175,8 +196,9 @@ async function processNodes() {
     if (argv["openai-comments"]) {
       printRedDashLine();
       let comment = await queryOpenAI(codeSnippet, fileContent);
-      console.log(comment);
-      insertComment(node, comment);
+      let split_comment = splitTextIntoLines(comment, 80).join("\n")
+      console.log(split_comment);
+      insertComment(node, split_comment);
     }
   }
 
