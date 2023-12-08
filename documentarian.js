@@ -39,46 +39,46 @@ if (!fs.existsSync(filePath)) {
   process.exit(1);
 }
 
-let fileContent;
+let cleanup_fileContent;
 try {
-  fileContent = fs.readFileSync(filePath, "utf-8");
+  cleanup_fileContent = fs.readFileSync(filePath, "utf-8");
 } catch (err) {
   console.error(`An error occurred while reading the file: ${err.message}`);
   process.exit(1);
 }
 
-let ast = parse(fileContent, {
+let cleanup_ast = parse(cleanup_fileContent, {
   sourceType: "module",
   plugins: ["jsx"],
 });
 
 // Function to remove all comments from AST
-function removeComments(ast) {
-  traverse(ast, {
+function removeComments(cleanup_ast) {
+  console.log("removing comments");
+  traverse(cleanup_ast, {
     enter(path) {
-      path.node.comments = []; // Remove comments from each node
+      if (path.node.leadingComments) {
+        //console.log("Leading comments before removal:", path.node.leadingComments);
+        path.node.leadingComments = [];
+      }
+      if (path.node.trailingComments) {
+        //console.log("Trailing comments before removal:", path.node.trailingComments);
+        path.node.trailingComments = [];
+      }
+      if (path.node.innerComments) {
+        //console.log("Inner comments before removal:", path.node.innerComments);
+        path.node.innerComments = [];
+      }
     },
   });
+  return cleanup_ast;
 }
 
 // Remove all comments if the -c argument is provided
 if (argv["clear-comments"]) {
-  removeComments(ast);
-  fileContent = generate(ast, {}, fileContent).code;
-  fs.writeFileSync(filePath, fileContent); // Write uncommented code back to the file
-  ast = parse(fileContent, {
-    sourceType: "module",
-    plugins: ["jsx"],
-  });
-}
-
-if (argv["clear-comments"]) {
-  try {
-    fileContent = fs.readFileSync(filePath, "utf-8");
-  } catch (err) {
-    console.error(`An error occurred while reading the file: ${err.message}`);
-    process.exit(1);
-  }
+  cleanup_ast = removeComments(cleanup_ast);
+  cleanup_fileContent = generate(cleanup_ast, {}, cleanup_fileContent).code;
+  fs.writeFileSync(filePath, cleanup_fileContent); // Write uncommented code back to the file
 }
 
 function printRedDashLine() {
@@ -102,7 +102,6 @@ The whole file is above, and the portion of the code repeated below is what I wa
 to describe. This portion of the code follows:
 
   ` + snippet;
-  //console.log(prompt);
 
   try {
     const params = {
@@ -126,6 +125,19 @@ to describe. This portion of the code follows:
     };
   }
 }
+
+let fileContent;
+try {
+  fileContent = fs.readFileSync(filePath, "utf-8");
+} catch (err) {
+  console.error(`An error occurred while reading the file: ${err.message}`);
+  process.exit(1);
+}
+
+let ast = parse(fileContent, {
+  sourceType: "module",
+  plugins: ["jsx"],
+});
 
 const nodesToProcess = [];
 
