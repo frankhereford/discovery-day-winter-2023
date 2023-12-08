@@ -12,12 +12,25 @@ const OpenAI = require("openai");
 
 const openai = new OpenAI({});
 
-const argv = yargs(hideBin(process.argv)).option("file", {
-  alias: "f",
-  describe: "Path to the JavaScript file",
-  type: "string",
-  demandOption: true,
-}).argv;
+const argv = yargs(hideBin(process.argv))
+  .option("file", {
+    alias: "f",
+    describe: "Path to the JavaScript file",
+    type: "string",
+    demandOption: true,
+  })
+  .option("clear-comments", {
+    alias: "c",
+    describe: "Remove all comments from the file before processing",
+    type: "boolean",
+    default: false,
+  })
+  .option("openai-comments", {
+    alias: "o",
+    describe: "Fetch and add comments from OpenAI",
+    type: "boolean",
+    default: false,
+  }).argv;
 
 const filePath = argv.file;
 
@@ -34,15 +47,38 @@ try {
   process.exit(1);
 }
 
-let ast;
-try {
+let ast = parse(fileContent, {
+  sourceType: "module",
+  plugins: ["jsx"],
+});
+
+// Function to remove all comments from AST
+function removeComments(ast) {
+  traverse(ast, {
+    enter(path) {
+      path.node.comments = []; // Remove comments from each node
+    },
+  });
+}
+
+// Remove all comments if the -c argument is provided
+if (argv["clear-comments"]) {
+  removeComments(ast);
+  fileContent = generate(ast, {}, fileContent).code;
+  fs.writeFileSync(filePath, fileContent); // Write uncommented code back to the file
   ast = parse(fileContent, {
     sourceType: "module",
     plugins: ["jsx"],
   });
-} catch (err) {
-  console.error(`Parsing error: ${err.message}`);
-  process.exit(1);
+}
+
+if (argv["clear-comments"]) {
+  try {
+    fileContent = fs.readFileSync(filePath, "utf-8");
+  } catch (err) {
+    console.error(`An error occurred while reading the file: ${err.message}`);
+    process.exit(1);
+  }
 }
 
 function printRedDashLine() {
@@ -118,21 +154,26 @@ function insertComment(node, comment) {
 }
 
 
-// Process nodes asynchronously
+// Modify the processNodes function to check for the openai-comments flag
 async function processNodes() {
   for (const node of nodesToProcess) {
     const { start, end } = node;
     const codeSnippet = fileContent.slice(start, end);
-    printRedDashLine()
-    let comment = await queryOpenAI(codeSnippet, fileContent);
-    console.log(comment);
-    insertComment(node, comment);
+
+    if (argv["openai-comments"]) {
+      printRedDashLine();
+      let comment = await queryOpenAI(codeSnippet, fileContent);
+      console.log(comment);
+      insertComment(node, comment);
+    }
   }
 
   // Generate the modified code
-  const output = generate(ast, {}, fileContent);
-  fs.writeFileSync(filePath, output.code); // Write the modified code back to the file
-  console.log("Comments inserted and file updated.");
+  if (argv["openai-comments"]) {
+    const output = generate(ast, {}, fileContent);
+    fs.writeFileSync(filePath, output.code); // Write the modified code back to the file
+    console.log("Comments inserted and file updated.");
+  }
 }
 
 // Run the async function
