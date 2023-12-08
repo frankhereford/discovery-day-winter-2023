@@ -213,7 +213,7 @@ function splitTextIntoLines(text, maxLineLength = 80) {
 }
 
 async function queryOpenAISummary(code) {
-  const prompt = `Please provide a 200-word summary, using bulleted lists where appropriate, of the following JavaScript file content:
+  const prompt = `Please provide a 200-word summary in markdown$, using bulleted lists where appropriate, of the following JavaScript file content. Don't wrap lines except for new bullets or paragraphs. Here's the file: 
 
 ${code}`;
 
@@ -254,10 +254,7 @@ async function processNodes() {
   if (argv["openai-comments"]) {
     const output = generate(ast, {}, fileContent);
     fs.writeFileSync(filePath, output.code); // Write the modified code back to the file
-    ast = parse(fileContent, {
-      sourceType: "module",
-      plugins: ["jsx"],
-    });
+    fileContent = output.code;
   }
 
   printColoredDashLine('green');
