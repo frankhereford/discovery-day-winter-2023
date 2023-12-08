@@ -43,7 +43,7 @@ const argv = yargs(hideBin(process.argv))
         describe: "Run prettier on the output",
         type: "boolean",
         default: false,
-    }.argv
+    }).argv
 
 const filePath = argv.file
 
