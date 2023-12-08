@@ -19,7 +19,7 @@ const argv = yargs(hideBin(process.argv)).option('file', {
   alias: 'f',
   describe: 'Path to the JavaScript file',
   type: 'string',
-  demandOption: true, // This option is required
+  demandOption: true,
 }).argv;
 
 // Retrieve the file path from the argument
@@ -40,14 +40,34 @@ try {
   process.exit(1);
 }
 
-console.log(fileContent);
-
 // Parse the file content to AST
-const ast = parse(fileContent, {
-  sourceType: 'module',
-  plugins: ['jsx'] // If you are using JSX
-});
+try {
+  const ast = parse(fileContent, {
+    sourceType: "module",
+    plugins: ["jsx"], // If you are using JSX
+    //errorRecovery: true,
+    //allowAwaitOutsideFunction: true,
+    //allowReturnOutsideFunction: true,
+    //allowUndeclaredExports: true,
+  });
+} catch (err) {
+  if (err.code === "BABEL_PARSER_SYNTAX_ERROR") {
+    console.error(`Syntax error in file: ${filePath}`);
+    console.error(`Error message: ${err.message}`);
 
+    const lines = fileContent.split("\n");
+    const errorLine = err.loc.line;
+
+    if (lines.length >= errorLine) {
+      console.error(`Problematic line (${errorLine}): ${lines[errorLine - 1]}`);
+    } else {
+      console.error(`Could not locate the problematic line.`);
+    }
+  } else {
+    console.error(err);
+  }
+  process.exit(1);
+}
 
 /*
 // Traverse the AST
