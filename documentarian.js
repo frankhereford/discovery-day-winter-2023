@@ -91,11 +91,27 @@ if (argv["clear-comments"]) {
   });
 }
 
-function printRedDashLine() {
+function printColoredDashLine(color) {
   const line = "-".repeat(80);
-  const red = "\x1b[31m";
+  let colorCode;
+
+  switch (color.toLowerCase()) {
+    case "red":
+      colorCode = "\x1b[31m";
+      break;
+    case "green":
+      colorCode = "\x1b[32m";
+      break;
+    case "blue":
+      colorCode = "\x1b[34m";
+      break;
+    default:
+      colorCode = ""; // Default to no color if an unrecognized color is passed
+      break;
+  }
+
   const reset = "\x1b[0m";
-  console.log(red + line + reset);
+  console.log(colorCode + line + reset);
 }
 
 async function queryOpenAI(snippet, code) {
@@ -226,7 +242,7 @@ async function processNodes() {
     const codeSnippet = fileContent.slice(start, end);
 
     if (argv["openai-comments"]) {
-      printRedDashLine();
+      printColoredDashLine('red');
       let comment = await queryOpenAI(codeSnippet, fileContent);
       let split_comment = splitTextIntoLines(comment, 80).join("\n");
       console.log(split_comment);
@@ -238,14 +254,22 @@ async function processNodes() {
   if (argv["openai-comments"]) {
     const output = generate(ast, {}, fileContent);
     fs.writeFileSync(filePath, output.code); // Write the modified code back to the file
-    console.log("Comments inserted and file updated.");
+    ast = parse(fileContent, {
+      sourceType: "module",
+      plugins: ["jsx"],
+    });
   }
 
+  printColoredDashLine('green');
+
   if (argv["header"]) {
-    const summary = await queryOpenAISummary(fileContent);
+    let summary = await queryOpenAISummary(fileContent);
+    summary = splitTextIntoLines(summary, 120).join("\n");
     fileContent = `/*\n${summary}\n*/\n\n${fileContent}`;
     fs.writeFileSync(filePath, fileContent); // Write the file with the prepended summary
     console.log("Summary header inserted and file updated.");
+    console.log(summary);
+    printColoredDashLine('blue');
   }
 }
 
