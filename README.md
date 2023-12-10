@@ -37,6 +37,3 @@ Ensure that your OpenAI API key is correctly configured in your environment vari
 ## License
 The Unlicense
 
----
-
-*Note: Modify and expand the README according to your project's specific requirements and context.*
