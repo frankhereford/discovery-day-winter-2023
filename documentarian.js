@@ -220,7 +220,7 @@ function splitTextIntoLines(text, maxLineLength = 80) {
 }
 
 async function queryOpenAISummary(code) {
-    const prompt = `Please provide a 200-word summary in markdown$, using bulleted lists where appropriate, of the following JavaScript file content. Don't wrap lines except for new bullets or paragraphs. Here's the file: 
+    const prompt = `Please provide a 200-word summary in markdown, using bulleted lists where appropriate, of the following JavaScript file content. Don't wrap lines except for new bullets or paragraphs. Here's the file: 
 
 ${code}`
 
